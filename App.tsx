@@ -1,7 +1,8 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { analyzeAndDesignFromImage, regenerateSingleImage } from './GeminiService';
-import { LandingPageContent } from './types';
+// إضافة الامتداد لضمان التعرف على الملف في بيئات الإنتاج
+import { analyzeAndDesignFromImage, regenerateSingleImage } from './GeminiService.tsx';
+import { LandingPageContent } from './types.ts';
 import html2canvas from 'html2canvas';
 
 const App: React.FC = () => {
@@ -17,16 +18,22 @@ const App: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const captureRef = useRef<HTMLDivElement>(null);
 
-  // تحميل المفتاح من التخزين المحلي عند فتح التطبيق
   useEffect(() => {
-    const savedKey = localStorage.getItem('user_gemini_api_key');
-    if (savedKey) setApiKey(savedKey);
+    try {
+      const savedKey = localStorage.getItem('user_gemini_api_key');
+      if (savedKey) setApiKey(savedKey);
+    } catch (e) {
+      console.warn("LocalStorage access denied or unavailable.");
+    }
   }, []);
 
-  // حفظ المفتاح عند تغييره
   const handleApiKeyChange = (val: string) => {
     setApiKey(val);
-    localStorage.setItem('user_gemini_api_key', val);
+    try {
+      localStorage.setItem('user_gemini_api_key', val);
+    } catch (e) {
+      console.error("Failed to save API key to storage.");
+    }
   };
 
   const EditableText = ({ 
@@ -96,7 +103,7 @@ const App: React.FC = () => {
 
   const startDesignProcess = async () => {
     if (!apiKey.trim()) {
-      alert("يرجى إدخال مفتاح API الخاص بك أولاً لتفعيل المحرك.");
+      alert("يرجى إدخال مفتاح API الخاص بك أولاً.");
       return;
     }
     if (productImages.length === 0) {
@@ -110,7 +117,7 @@ const App: React.FC = () => {
       setContent(result);
     } catch (error: any) {
       console.error(error);
-      alert("خطأ في المفتاح أو التوليد. تأكد من أن مفتاح API الخاص بك يدعم موديلات Gemini.");
+      alert("حدث خطأ. تأكد من صحة مفتاح الـ API وصلاحية الصور.");
     } finally {
       setIsProcessing(false);
       setCurrentStepText("");
@@ -133,7 +140,7 @@ const App: React.FC = () => {
       setContent(newContent);
     } catch (err: any) { 
       console.error(err);
-      alert("فشل في التوليد. تحقق من صلاحية المفتاح.");
+      alert("فشل في التوليد. تحقق من المفتاح.");
     } finally { setIsProcessing(false); setCurrentStepText(""); }
   };
 
@@ -152,7 +159,7 @@ const App: React.FC = () => {
     } catch (err) { console.error(err); } finally { setDownloading(false); }
   };
 
-  const themeColor = content?.strategyInsights.atmosphere.primaryColor || '#0f172a';
+  const themeColor = content?.strategyInsights?.atmosphere?.primaryColor || '#0f172a';
 
   const LuxuryCTA = ({ value, onSave }: { value: string, onSave: (v: string) => void }) => (
     <div 
@@ -183,7 +190,6 @@ const App: React.FC = () => {
         </header>
 
         <div className="space-y-8 flex-1">
-          {/* خانة الـ API KEY */}
           <div className="space-y-3 p-5 rounded-2xl bg-white/5 border border-white/10">
             <div className="flex items-center justify-between">
               <label className="text-[10px] font-black text-white/40 uppercase tracking-widest">مفتاح API الخاص بك</label>
@@ -196,11 +202,11 @@ const App: React.FC = () => {
               placeholder="لصق مفتاح Gemini هنا..."
               className="w-full h-12 bg-black/40 border border-white/5 rounded-xl px-4 text-xs text-white placeholder:text-white/10 focus:outline-none focus:border-emerald-500/30 transition-all font-mono"
             />
-            <p className="text-[9px] text-white/20">يتم تخزين المفتاح محلياً في متصفحك فقط.</p>
+            <p className="text-[9px] text-white/20 text-center">يتم الحفظ تلقائياً في متصفحك</p>
           </div>
 
           <div className="space-y-4">
-            <label className="text-[10px] font-black text-white/30 uppercase tracking-widest">صور المنتج الأساسية</label>
+            <label className="text-[10px] font-black text-white/30 uppercase tracking-widest">صور المنتج</label>
             <div className="grid grid-cols-4 gap-2">
               {productImages.map((img, idx) => (
                 <div key={idx} className="relative aspect-square rounded-lg overflow-hidden border border-white/5">
@@ -214,12 +220,12 @@ const App: React.FC = () => {
 
           <div className="space-y-4">
             <label className="text-[10px] font-black text-white/30 uppercase tracking-widest">الألوان والمقاسات</label>
-            <textarea value={variantsContext} onChange={(e) => setVariantsContext(e.target.value)} placeholder="أدخل الألوان: أحمر، أسود، مقاس L..." className="w-full h-20 bg-white/5 border border-white/10 rounded-xl p-4 text-xs text-white focus:outline-none focus:border-white/20 transition-all resize-none" />
+            <textarea value={variantsContext} onChange={(e) => setVariantsContext(e.target.value)} placeholder="مثال: أحمر، أسود، مقاس L..." className="w-full h-20 bg-white/5 border border-white/10 rounded-xl p-4 text-xs text-white focus:outline-none focus:border-white/20 transition-all resize-none" />
           </div>
 
           <div className="space-y-4">
-            <label className="text-[10px] font-black text-white/30 uppercase tracking-widest">ملاحظات تظهر في الصفحة</label>
-            <textarea value={notesContext} onChange={(e) => setNotesContext(e.target.value)} placeholder="مثال: توصيل سريع، جودة مضمونة..." className="w-full h-24 bg-white/5 border border-white/10 rounded-xl p-4 text-xs text-white focus:outline-none focus:border-white/20 transition-all resize-none" />
+            <label className="text-[10px] font-black text-white/30 uppercase tracking-widest">ملاحظات إضافية</label>
+            <textarea value={notesContext} onChange={(e) => setNotesContext(e.target.value)} placeholder="مثال: توصيل مجاني، ضمان سنة..." className="w-full h-24 bg-white/5 border border-white/10 rounded-xl p-4 text-xs text-white focus:outline-none focus:border-white/20 transition-all resize-none" />
           </div>
 
           <button 
@@ -250,7 +256,6 @@ const App: React.FC = () => {
         {content ? (
           <div ref={captureRef} id="capture-area" className="bg-white text-slate-900 flex flex-col shadow-2xl origin-top">
             
-            {/* HERO */}
             <header className="relative pt-12 pb-16 text-center bg-white flex flex-col">
               <div className="px-12 space-y-10 mb-16">
                 <EditableText value={content.hero.headline} onSave={(v) => setContent({...content, hero: {...content.hero, headline: v}})} className="text-[82px] font-black leading-[1.3] tracking-tighter" />
@@ -267,7 +272,6 @@ const App: React.FC = () => {
               </div>
             </header>
 
-            {/* PROBLEM */}
             <section className="py-28 bg-[#0c111d] text-white text-center">
               <div className="px-12 mb-16">
                 <EditableText value={content.problem.title} onSave={(v) => setContent({...content, problem: {...content.problem, title: v}})} className="text-[64px] font-black text-red-500 tracking-tight leading-[1.4]" />
@@ -287,7 +291,6 @@ const App: React.FC = () => {
               </div>
             </section>
 
-            {/* ARTISTIC BENEFITS */}
             <section className="py-28 bg-white">
               <div className="text-center mb-24 px-12">
                 <EditableText value={content.visualBenefits.title} onSave={(v) => setContent({...content, visualBenefits: {...content.visualBenefits, title: v}})} className="text-[52px] font-black tracking-[0.2em] uppercase leading-[1.6]" />
@@ -312,7 +315,6 @@ const App: React.FC = () => {
               </div>
             </section>
 
-            {/* REVIEWS */}
             <section className="py-28 px-12 bg-[#fafafa]">
               <div className="text-center mb-20">
                 <EditableText value={content.socialProof.title} onSave={(v) => setContent({...content, socialProof: {...content.socialProof, title: v}})} className="text-[28px] font-black block opacity-20 tracking-[0.5em] uppercase leading-[1.6]" />
@@ -334,15 +336,14 @@ const App: React.FC = () => {
               </div>
             </section>
 
-            {/* FINAL CALL */}
             <footer className="py-32 px-12 bg-[#0c111d] text-center relative overflow-hidden">
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-blue-500/10 blur-[120px] pointer-events-none" />
               <div className="relative z-10">
                 <LuxuryCTA 
-                  value={content.hero.cta} 
-                  onSave={(v) => setContent({...content, hero: {...content.hero, cta: v}})} 
+                  value={content?.hero?.cta || "اطلب الآن"} 
+                  onSave={(v) => content && setContent({...content, hero: {...content.hero, cta: v}})} 
                 />
-                <p className="text-white/20 mt-20 text-[26px] font-bold tracking-[0.2em] uppercase leading-[2.0]">Luxury Brand Engine &bull; Algeria</p>
+                <p className="text-white/20 mt-20 text-[26px] font-bold tracking-[0.2em] uppercase leading-[2.0]">Luxury Brand Engine &bull; Nano Brand</p>
               </div>
             </footer>
 
@@ -356,7 +357,6 @@ const App: React.FC = () => {
         )}
       </main>
 
-      {/* شاشة التحميل */}
       {isProcessing && (
         <div className="fixed inset-0 bg-black/95 backdrop-blur-2xl z-[100] flex flex-col items-center justify-center p-8 text-center">
           <div className="w-24 h-24 relative mb-12">

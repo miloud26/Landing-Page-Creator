@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI Product Researcher & Conversion Designer</title>
+  <title>Nano Brand Luxury Engine</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -18,7 +18,6 @@
       -moz-osx-font-smoothing: grayscale;
     }
     
-    /* منع تقطع الحروف العربية */
     * {
       letter-spacing: normal !important;
       word-spacing: normal !important;
@@ -33,7 +32,6 @@
       scrollbar-width: none;
     }
 
-    /* العرض المطلوب 800 بكسل مع مسافة 5 بكسل فقط عن الحواف كما طلب المستخدم */
     #capture-area {
       width: 800px;
       padding: 5px; 
@@ -44,26 +42,33 @@
       overflow: hidden;
     }
 
-    /* إصلاح مشاكل الـ contentEditable مع الحروف العربية */
     [contenteditable] {
       outline: none;
       white-space: pre-wrap;
       word-break: break-word;
     }
   </style>
-<script type="importmap">
-{
-  "imports": {
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "react/": "https://esm.sh/react@^19.2.3/",
-    "react": "https://esm.sh/react@^19.2.3",
-    "@google/genai": "https://esm.sh/@google/genai@^1.37.0",
-    "html2canvas": "https://esm.sh/html2canvas@1.4.1"
+  
+  <!-- تعريف process لمنع الخطأ في Vercel -->
+  <script>
+    window.process = { env: { NODE_ENV: 'production' } };
+  </script>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+      "react/": "https://esm.sh/react@^19.2.3/",
+      "react": "https://esm.sh/react@^19.2.3",
+      "@google/genai": "https://esm.sh/@google/genai@^1.37.0",
+      "html2canvas": "https://esm.sh/html2canvas@1.4.1"
+    }
   }
-}
-</script>
+  </script>
 </head>
 <body class="bg-slate-950 text-slate-100">
   <div id="root"></div>
+  <!-- استيراد ملف التشغيل الرئيسي -->
+  <script type="module" src="./index.tsx"></script>
 </body>
 </html>
