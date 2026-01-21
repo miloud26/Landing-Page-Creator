@@ -1,8 +1,10 @@
 
-import React, { useState, useRef } from 'react';
-import { analyzeAndDesignFromImage, regenerateSingleImage } from './GeminiService';
+import React, { useState, useRef, useEffect } from 'react';
+import { analyzeAndDesignFromImage } from './GeminiService';
 import { LandingPageContent } from './types';
 import html2canvas from 'html2canvas';
+
+// Removed redundant aistudio declaration as it conflicts with environmental types
 
 const App: React.FC = () => {
   const [productImages, setProductImages] = useState<string[]>([]);
@@ -12,9 +14,33 @@ const App: React.FC = () => {
   const [currentStepText, setCurrentStepText] = useState("");
   const [content, setContent] = useState<LandingPageContent | null>(null);
   const [downloading, setDownloading] = useState(false);
+  const [hasKey, setHasKey] = useState<boolean>(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const captureRef = useRef<HTMLDivElement>(null);
+
+  // التحقق من وجود مفتاح مربوط عند التحميل
+  useEffect(() => {
+    const checkKeyStatus = async () => {
+      // @ts-ignore - aistudio is provided by the environment
+      if (window.aistudio) {
+        // @ts-ignore
+        const connected = await window.aistudio.hasSelectedApiKey();
+        setHasKey(connected);
+      }
+    };
+    checkKeyStatus();
+  }, []);
+
+  const handleConnectKey = async () => {
+    // @ts-ignore
+    if (window.aistudio) {
+      // @ts-ignore
+      await window.aistudio.openSelectKey();
+      // Assume the key selection was successful as per guidelines to avoid race conditions
+      setHasKey(true);
+    }
+  };
 
   const EditableText = ({ 
     value, 
@@ -61,18 +87,27 @@ const App: React.FC = () => {
   };
 
   const startDesignProcess = async () => {
+    if (!hasKey) {
+      handleConnectKey();
+      return;
+    }
     if (productImages.length === 0) {
       alert("يرجى رفع صور المنتج أولاً.");
       return;
     }
     setIsProcessing(true);
-    setCurrentStepText("بدء محرك التحليل الذكي...");
+    setCurrentStepText("بدء محرك التحليل الاحترافي...");
     try {
       const result = await analyzeAndDesignFromImage(productImages, notesContext, variantsContext, setCurrentStepText);
       setContent(result);
     } catch (error: any) {
       console.error(error);
-      alert("حدث خطأ في الاتصال. يرجى التأكد من إعداد مفتاح API في البيئة (Environment Variables).");
+      if (error.message?.includes("Requested entity was not found")) {
+        setHasKey(false);
+        alert("فشل في المصادقة. يرجى إعادة ربط مفتاح API الخاص بك.");
+      } else {
+        alert("حدث خطأ في الاتصال. يرجى المحاولة لاحقاً.");
+      }
     } finally {
       setIsProcessing(false);
       setCurrentStepText("");
@@ -92,17 +127,28 @@ const App: React.FC = () => {
     } catch (err) { console.error(err); } finally { setDownloading(false); }
   };
 
-  const themeColor = content?.strategyInsights?.atmosphere?.primaryColor || '#0f172a';
-
   return (
     <div className="min-h-screen bg-[#020202] text-slate-100 font-['Cairo'] flex flex-col lg:flex-row overflow-hidden" dir="rtl">
       
       <aside className="w-full lg:w-[380px] bg-[#080808] border-l border-white/5 p-8 flex flex-col overflow-y-auto no-scrollbar shrink-0 z-50">
-        <header className="mb-10">
+        <header className="mb-10 flex items-center justify-between">
           <h1 className="text-2xl font-black text-white">نانو براند</h1>
+          <div className="flex items-center gap-2">
+             <span className={`w-2 h-2 rounded-full ${hasKey ? 'bg-emerald-500 shadow-[0_0_10px_#10b981]' : 'bg-red-500 animate-pulse'}`} />
+             <span className="text-[10px] font-bold text-white/20 uppercase tracking-widest">{hasKey ? 'Connected' : 'Offline'}</span>
+          </div>
         </header>
 
         <div className="space-y-8 flex-1">
+          {/* قسم ربط المحرك */}
+          {!hasKey && (
+            <div className="p-6 rounded-3xl bg-white/5 border border-white/10 space-y-4">
+              <p className="text-xs font-bold text-white/40 leading-relaxed">لجعل التطبيق يعمل بجودة Pro وحسابك الخاص، يرجى ربط مفتاح API.</p>
+              <button onClick={handleConnectKey} className="w-full py-3 bg-emerald-600/20 text-emerald-400 text-xs font-black rounded-xl border border-emerald-500/30 hover:bg-emerald-600/30 transition-all">ربط محرك نانو الذكي</button>
+              <a href="https://ai.google.dev/gemini-api/docs/billing" target="_blank" className="block text-center text-[9px] text-white/20 hover:text-white transition-colors">عرض تعليمات الفوترة والـ API</a>
+            </div>
+          )}
+
           <div className="space-y-4">
             <label className="text-[10px] font-black text-white/30 uppercase tracking-widest">صور المنتج</label>
             <div className="grid grid-cols-4 gap-2">
@@ -131,7 +177,7 @@ const App: React.FC = () => {
             disabled={isProcessing || productImages.length === 0} 
             className="group relative w-full h-20 bg-white text-black font-black rounded-full shadow-2xl hover:scale-[1.02] active:scale-[0.98] disabled:opacity-20 flex items-center justify-center gap-4 text-lg transition-all"
           >
-            {isProcessing ? <div className="w-6 h-6 border-2 border-black border-t-transparent rounded-full animate-spin" /> : 'ابتكار البراند الفاخر'}
+            {isProcessing ? <div className="w-6 h-6 border-2 border-black border-t-transparent rounded-full animate-spin" /> : (!hasKey ? 'ربط المحرك أولاً' : 'ابتكار البراند الفاخر')}
           </button>
         </div>
 
@@ -151,11 +197,11 @@ const App: React.FC = () => {
       <main className="flex-1 overflow-y-auto flex justify-center bg-[#000000] no-scrollbar py-10">
         {content ? (
           <div ref={captureRef} id="capture-area" className="bg-white text-slate-900 flex flex-col shadow-2xl origin-top">
-            <header className="relative pt-12 pb-16 text-center px-12 space-y-10">
+             <header className="relative pt-12 pb-16 text-center px-12 space-y-10">
               <EditableText value={content.hero.headline} onSave={(v) => setContent({...content, hero: {...content.hero, headline: v}})} className="text-[82px] font-black leading-tight tracking-tighter" />
               <EditableText value={content.hero.subheadline} onSave={(v) => setContent({...content, hero: {...content.hero, subheadline: v}})} className="text-[34px] text-slate-400 font-bold" />
               <img src={content.hero.imageUrl} className="w-full rounded-[60px] aspect-square object-cover" crossOrigin="anonymous" alt="Hero" />
-              <div className="w-full py-12 rounded-full text-white text-[52px] font-black flex items-center justify-center cursor-pointer" style={{backgroundColor: themeColor}}>
+              <div className="w-full py-12 rounded-full text-white text-[52px] font-black flex items-center justify-center" style={{backgroundColor: content.strategyInsights.atmosphere.primaryColor}}>
                 {content.hero.cta}
               </div>
             </header>
@@ -175,7 +221,6 @@ const App: React.FC = () => {
               </div>
             </section>
 
-            {/* عرض المزايا الفنية */}
             <section className="py-28 bg-white px-12">
               <EditableText value={content.visualBenefits.title} onSave={(v) => setContent({...content, visualBenefits: {...content.visualBenefits, title: v}})} className="text-[52px] font-black text-center mb-24 uppercase" />
               <div className="space-y-36">
@@ -196,17 +241,17 @@ const App: React.FC = () => {
             </section>
 
             <footer className="py-32 px-12 bg-[#0c111d] text-center">
-              <div className="w-full py-12 rounded-full text-white text-[52px] font-black flex items-center justify-center" style={{backgroundColor: themeColor}}>
+              <div className="w-full py-12 rounded-full text-white text-[52px] font-black flex items-center justify-center" style={{backgroundColor: content.strategyInsights.atmosphere.primaryColor}}>
                 {content.hero.cta}
               </div>
-              <p className="text-white/20 mt-20 text-[26px] font-bold">LUXURY BRAND ENGINE • NANO BRAND</p>
+              <p className="text-white/20 mt-20 text-[26px] font-bold">LUXURY PRO ENGINE • NANO BRAND</p>
             </footer>
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center text-center max-w-md py-48 opacity-20">
             <div className="text-[140px] mb-16 grayscale">✦</div>
-            <h2 className="text-5xl font-black mb-10 text-white tracking-tighter">الابتكار البصري</h2>
-            <p className="text-2xl font-bold text-white leading-relaxed">ارفع صور المنتج لتوليد تجربة بيع سينمائية تعتمد على الذكاء الاصطناعي.</p>
+            <h2 className="text-5xl font-black mb-10 text-white tracking-tighter">الابتكار البصري PRO</h2>
+            <p className="text-2xl font-bold text-white leading-relaxed">اربط محرك الـ API الخاص بك لتوليد تجربة بيع سينمائية بمواصفات عالمية.</p>
           </div>
         )}
       </main>

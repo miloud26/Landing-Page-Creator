@@ -25,7 +25,7 @@ function generateLocalAvatar(name: string): string {
 }
 
 /**
- * إعادة توليد صورة واحدة باستخدام الموديل المستقر
+ * توليد صور فوتوغرافية احترافية باستخدام Pro Image Preview
  */
 export async function regenerateSingleImage(
   prompt: string, 
@@ -33,38 +33,41 @@ export async function regenerateSingleImage(
   allProductImages: string[] = []
 ): Promise<string | null> {
   try {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
+    // Always create a fresh instance before API call using process.env.API_KEY directly
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const referenceImages = allProductImages.length > 0 ? allProductImages : [currentImage];
     const imageParts = referenceImages.map(img => ({
       inlineData: { data: img.split(',')[1], mimeType: "image/jpeg" }
     }));
 
-    const parts: any[] = [
-      { 
-        text: `STRICT PRODUCT FIDELITY PROTOCOL.
-        IMAGE PROMPT: "${prompt}".
-        STYLE: Ultra-luxury, cinematic studio lighting, 8k, professional photography.
-        REQUIREMENT: Product must be exactly as shown in references.` 
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-pro-image-preview',
+      contents: {
+        parts: [
+          ...imageParts,
+          { text: `High-end commercial product photography. ${prompt}. Ultra-realistic, 4k, cinematic lighting, studio background, luxury aesthetic. Maintain 100% product identity.` }
+        ]
       },
-      ...imageParts
-    ];
-
-    const imgResponse = await ai.models.generateContent({
-      model: "gemini-2.5-flash-image",
-      contents: { parts },
-      config: { imageConfig: { aspectRatio: "1:1" } } 
+      config: {
+        imageConfig: { aspectRatio: "1:1", imageSize: "1K" }
+      }
     });
-    
-    const part = imgResponse.candidates?.[0]?.content?.parts.find(p => p.inlineData);
-    return part ? `data:image/png;base64,${part.inlineData.data}` : null;
+
+    // Access candidates directly and find the inlineData part as per guidelines
+    for (const part of response.candidates?.[0]?.content?.parts || []) {
+      if (part.inlineData) {
+        return `data:image/png;base64,${part.inlineData.data}`;
+      }
+    }
+    return null;
   } catch (e: any) {
-    console.error("Image Generation Error:", e);
+    console.error("Pro Image Generation Error:", e);
     return null;
   }
 }
 
 /**
- * تحليل وتصميم الصفحة باستخدام gemini-3-flash لضمان أعلى استقرار
+ * تحليل استراتيجي عميق باستخدام Pro Preview لضمان لغة تسويقية فاخرة
  */
 export async function analyzeAndDesignFromImage(
   productImages: string[], 
@@ -72,56 +75,60 @@ export async function analyzeAndDesignFromImage(
   variantsContext: string = "",
   onProgress?: (step: string) => void
 ): Promise<LandingPageContent> {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
+  // Fresh instance using process.env.API_KEY directly
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const imageParts = productImages.map(img => ({
     inlineData: { mimeType: "image/jpeg", data: img.split(',')[1] },
   }));
 
-  onProgress?.("تحليل المنتج وبناء استراتيجية البيع (Flash Engine)...");
+  onProgress?.("تحليل المكونات البصرية للمنتج (Pro Engine)...");
   
   const researchResponse = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
+    model: "gemini-3-pro-preview",
     contents: [
       {
         parts: [
           ...imageParts,
           {
-            text: `Role: Luxury E-commerce Copywriter & Strategist.
-            Build a high-converting Landing Page in ARABIC for this product.
-            User Notes: ${notesContext}
-            Variants: ${variantsContext}
+            text: `Role: Master Brand Strategist for Ultra-Luxury Goods.
+            Create a high-conversion landing page in ARABIC.
+            Style: Minimalist, prestigious, and extremely persuasive.
+            Context: Variants: ${variantsContext}, Notes: ${notesContext}.
             
             Return JSON ONLY:
             {
-              "strategyInsights": { "atmosphere": { "primaryColor": "#0f172a", "mood": "Luxury" } },
+              "strategyInsights": { "atmosphere": { "primaryColor": "#0f172a", "mood": "Cinematic Luxury" } },
               "copy": {
-                "hero": { "headline": "...", "subheadline": "...", "cta": "اطلب الآن" },
+                "hero": { "headline": "...", "subheadline": "...", "cta": "اكتشف الفخامة" },
                 "problem": { "title": "...", "pains": ["...", "...", "..."] },
                 "solution": { "title": "...", "explanation": "..." },
-                "variants": { "title": "الخيارات المتاحة", "items": [{"label": "...", "value": "#000", "type": "color"}] },
-                "notes": { "title": "تنبيه هام", "content": "..." },
-                "visualBenefits": { "title": "لماذا تختارنا؟", "items": [{ "title": "...", "description": "..." }] },
-                "socialProof": { "title": "آراء الزبائن", "reviews": [{ "name": "...", "comment": "..." }] },
-                "faqs": { "title": "الأسئلة الشائعة", "items": [{ "question": "...", "answer": "..." }] }
+                "variants": { "title": "إصدارات حصرية", "items": [{"label": "...", "value": "#000", "type": "color"}] },
+                "notes": { "title": "معلومات تهمك", "content": "..." },
+                "visualBenefits": { "title": "لماذا نانو براند؟", "items": [{ "title": "...", "description": "..." }] },
+                "socialProof": { "title": "شهادات التميز", "reviews": [{ "name": "...", "comment": "..." }] },
+                "faqs": { "title": "تساؤلات شائعة", "items": [{ "question": "...", "answer": "..." }] }
               },
               "imagePrompts": {
-                 "hero": "Luxury studio reveal, dramatic lighting.",
-                 "problem": "Moody photography representing the problem.",
-                 "solution": "Clean professional product shot.",
-                 "benefitPrompts": ["Close up detail.", "Lifestyle display."]
+                 "hero": "Dramatic product reveal in a dark luxury studio.",
+                 "problem": "Subtle artistic expression of discomfort.",
+                 "solution": "Masterpiece shot of the product.",
+                 "benefitPrompts": ["Macro detail shot.", "Elegance in motion."]
               }
             }`
           }
         ],
       }
-    ]
+    ],
+    config: { 
+      thinkingConfig: { thinkingBudget: 4000 },
+      responseMimeType: "application/json"
+    }
   });
 
-  const textResponse = researchResponse.text || "";
-  const jsonMatch = textResponse.match(/```json\s*([\s\S]*?)\s*```/) || [null, textResponse];
-  const plan = JSON.parse(jsonMatch[1] || textResponse);
+  // Extracting text output using the .text property (not a method)
+  const plan = JSON.parse(researchResponse.text.trim());
 
-  onProgress?.("توليد الصور السينمائية عالية الدقة...");
+  onProgress?.("توليد المشاهد البصرية الاحترافية (Pro)...");
   
   const safeGenerate = async (prompt: string, idx: number) => {
     const result = await regenerateSingleImage(prompt, productImages[idx % productImages.length], productImages);
@@ -146,7 +153,7 @@ export async function analyzeAndDesignFromImage(
     variants: plan.copy.variants,
     notes: plan.copy.notes,
     visualBenefits: { 
-      title: plan.copy.visualBenefits?.title || "المزايا", 
+      title: plan.copy.visualBenefits?.title || "التفاصيل", 
       items: (plan.copy.visualBenefits?.items || []).map((it: any, i: number) => ({ 
         ...it, id: String(i), imageUrl: benefitImages[i] || productImages[0]
       })) 
