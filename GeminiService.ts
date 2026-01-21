@@ -2,11 +2,6 @@
 import { GoogleGenAI } from "@google/genai";
 import { LandingPageContent } from "./types";
 
-function cleanArabicText(text: string): string {
-  if (!text) return "";
-  return text.replace(/[\u200B-\u200D\uFEFF]/g, '').trim();
-}
-
 function toBase64(str: string): string {
   try {
     return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (match, p1) => {
@@ -30,17 +25,15 @@ function generateLocalAvatar(name: string): string {
 }
 
 /**
- * إعادة توليد صورة واحدة باستخدام مفتاح API المقدم من المستخدم
+ * إعادة توليد صورة واحدة باستخدام الموديل المستقر
  */
 export async function regenerateSingleImage(
-  apiKey: string,
   prompt: string, 
   currentImage: string, 
   allProductImages: string[] = []
 ): Promise<string | null> {
   try {
-    // نستخدم المفتاح الممرر من المستخدم مباشرة
-    const ai = new GoogleGenAI({ apiKey });
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
     const referenceImages = allProductImages.length > 0 ? allProductImages : [currentImage];
     const imageParts = referenceImages.map(img => ({
       inlineData: { data: img.split(',')[1], mimeType: "image/jpeg" }
@@ -48,13 +41,10 @@ export async function regenerateSingleImage(
 
     const parts: any[] = [
       { 
-        text: `STRICT PRODUCT FIDELITY & MASTERPIECE PROTOCOL.
-        1. PRODUCT: Must be 100% identical to the reference images.
-        2. SCENE: "${prompt}".
-        3. CINEMATIC: Use dramatic lighting, exciting composition, 8k resolution.
-        4. ARTISTRY: Luxury studio photography, elegant and clean.
-        5. PERSPECTIVE: Show the FULL object clearly.
-        6. TECHNICAL: 1:1 SQUARE.` 
+        text: `STRICT PRODUCT FIDELITY PROTOCOL.
+        IMAGE PROMPT: "${prompt}".
+        STYLE: Ultra-luxury, cinematic studio lighting, 8k, professional photography.
+        REQUIREMENT: Product must be exactly as shown in references.` 
       },
       ...imageParts
     ];
@@ -69,83 +59,73 @@ export async function regenerateSingleImage(
     return part ? `data:image/png;base64,${part.inlineData.data}` : null;
   } catch (e: any) {
     console.error("Image Generation Error:", e);
-    throw e;
+    return null;
   }
 }
 
 /**
- * تحليل وتصميم الصفحة بالكامل باستخدام مفتاح API المقدم من المستخدم
+ * تحليل وتصميم الصفحة باستخدام gemini-3-flash لضمان أعلى استقرار
  */
 export async function analyzeAndDesignFromImage(
-  apiKey: string,
   productImages: string[], 
   notesContext: string = "",
   variantsContext: string = "",
   onProgress?: (step: string) => void
 ): Promise<LandingPageContent> {
-  const ai = new GoogleGenAI({ apiKey });
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
   const imageParts = productImages.map(img => ({
     inlineData: { mimeType: "image/jpeg", data: img.split(',')[1] },
   }));
 
-  onProgress?.("تحليل المنتج وبناء استراتيجية الفخامة المطلقة...");
+  onProgress?.("تحليل المنتج وبناء استراتيجية البيع (Flash Engine)...");
   
   const researchResponse = await ai.models.generateContent({
-    model: "gemini-3-pro-preview",
+    model: "gemini-3-flash-preview",
     contents: [
       {
         parts: [
           ...imageParts,
           {
-            text: `Role: Ultra-Luxury Brand Strategist.
-            TASK: 
-            1. Analyze product from images.
-            2. Build Landing Page in ARABIC.
-            3. Contexts: Variants: ${variantsContext}, Notes: ${notesContext}.
-            4. Social Proof: 3 Algerian reviews.
+            text: `Role: Luxury E-commerce Copywriter & Strategist.
+            Build a high-converting Landing Page in ARABIC for this product.
+            User Notes: ${notesContext}
+            Variants: ${variantsContext}
             
             Return JSON ONLY:
             {
-              "strategyInsights": { "atmosphere": { "primaryColor": "#0f172a", "mood": "Cinematic Luxury" } },
+              "strategyInsights": { "atmosphere": { "primaryColor": "#0f172a", "mood": "Luxury" } },
               "copy": {
                 "hero": { "headline": "...", "subheadline": "...", "cta": "اطلب الآن" },
                 "problem": { "title": "...", "pains": ["...", "...", "..."] },
                 "solution": { "title": "...", "explanation": "..." },
-                "variants": { "title": "خيارات الفخامة", "items": [{"label": "أحمر ملكي", "value": "#ff0000", "type": "color"}] },
-                "notes": { "title": "ملاحظات هامة", "content": "..." },
-                "visualBenefits": { "title": "لماذا هذا الابتكار؟", "items": [{ "title": "...", "description": "..." }] },
-                "socialProof": { "title": "ثقة زبائننا", "reviews": [{ "name": "...", "comment": "..." }] },
+                "variants": { "title": "الخيارات المتاحة", "items": [{"label": "...", "value": "#000", "type": "color"}] },
+                "notes": { "title": "تنبيه هام", "content": "..." },
+                "visualBenefits": { "title": "لماذا تختارنا؟", "items": [{ "title": "...", "description": "..." }] },
+                "socialProof": { "title": "آراء الزبائن", "reviews": [{ "name": "...", "comment": "..." }] },
                 "faqs": { "title": "الأسئلة الشائعة", "items": [{ "question": "...", "answer": "..." }] }
               },
               "imagePrompts": {
-                 "hero": "Cinematic reveal, luxury, dramatic lighting.",
-                 "problem": "Moody gritty photo of struggle.",
-                 "solution": "Pristine studio shot showing full product.",
-                 "benefitPrompts": ["Professional dynamic shot.", "Clear luxury display."]
+                 "hero": "Luxury studio reveal, dramatic lighting.",
+                 "problem": "Moody photography representing the problem.",
+                 "solution": "Clean professional product shot.",
+                 "benefitPrompts": ["Close up detail.", "Lifestyle display."]
               }
             }`
           }
         ],
-      },
-    ],
-    config: { tools: [{ googleSearch: {} }] }
+      }
+    ]
   });
 
   const textResponse = researchResponse.text || "";
-  const jsonMatch = textResponse.match(/```json\s*([\s\S]*?)\s*```/);
-  if (!jsonMatch) throw new Error("Strategy Engine Failed.");
-  
-  const plan = JSON.parse(jsonMatch[1]);
+  const jsonMatch = textResponse.match(/```json\s*([\s\S]*?)\s*```/) || [null, textResponse];
+  const plan = JSON.parse(jsonMatch[1] || textResponse);
 
-  onProgress?.("توليد الصور السينمائية (تستغرق وقتاً)...");
+  onProgress?.("توليد الصور السينمائية عالية الدقة...");
   
   const safeGenerate = async (prompt: string, idx: number) => {
-    try {
-      const result = await regenerateSingleImage(apiKey, prompt, productImages[idx % productImages.length], productImages);
-      return result || productImages[idx % productImages.length]; 
-    } catch (e) {
-      return productImages[idx % productImages.length];
-    }
+    const result = await regenerateSingleImage(prompt, productImages[idx % productImages.length], productImages);
+    return result || productImages[idx % productImages.length];
   };
 
   const [heroImg, problemImg, solutionImg] = await Promise.all([
@@ -160,31 +140,27 @@ export async function analyzeAndDesignFromImage(
 
   return {
     strategyInsights: plan.strategyInsights,
-    hero: { headline: plan.copy.hero.headline, subheadline: plan.copy.hero.subheadline, cta: plan.copy.hero.cta, imageUrl: heroImg },
-    problem: { title: plan.copy.problem.title, pains: plan.copy.problem.pains, imageUrl: problemImg },
-    solution: { title: plan.copy.solution.title, explanation: plan.copy.solution.explanation, imageUrl: solutionImg },
+    hero: { ...plan.copy.hero, imageUrl: heroImg },
+    problem: { ...plan.copy.problem, imageUrl: problemImg },
+    solution: { ...plan.copy.solution, imageUrl: solutionImg },
     variants: plan.copy.variants,
     notes: plan.copy.notes,
     visualBenefits: { 
-      title: plan.copy.visualBenefits?.title || "لماذا نحن؟", 
+      title: plan.copy.visualBenefits?.title || "المزايا", 
       items: (plan.copy.visualBenefits?.items || []).map((it: any, i: number) => ({ 
-        ...it, 
-        id: String(i), 
-        imageUrl: benefitImages[i] || productImages[i % productImages.length] 
+        ...it, id: String(i), imageUrl: benefitImages[i] || productImages[0]
       })) 
     },
     socialProof: { 
-      title: plan.copy.socialProof.title, 
-      reviews: (plan.copy.socialProof.reviews || []).slice(0, 3).map((r: any, i: number) => ({ 
+      ...plan.copy.socialProof,
+      reviews: (plan.copy.socialProof.reviews || []).map((r: any, i: number) => ({ 
         ...r, id: String(i), avatar: generateLocalAvatar(r.name) 
-      })), 
-      verification: "مراجعات موثقة" 
+      }))
     },
     faqs: {
-      title: plan.copy.faqs?.title || "الأسئلة الشائعة",
+      title: plan.copy.faqs?.title || "الأسئلة",
       items: (plan.copy.faqs?.items || []).map((f: any, i: number) => ({ ...f, id: String(i) }))
     },
-    offer: { price: "", oldPrice: "", urgency: "", cta: plan.copy.hero.cta, ctaLink: "#", guarantees: [], imageUrl: "" },
-    sources: []
+    offer: { price: "", oldPrice: "", urgency: "", cta: plan.copy.hero.cta, guarantees: [], imageUrl: "" }
   } as LandingPageContent;
 }
