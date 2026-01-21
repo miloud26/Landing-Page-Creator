@@ -1,0 +1,7 @@
+{
+  "name": "ZenAI Journal",
+  "description": "A mindful journaling application that provides AI-powered insights, mood visualizations, and real-time guided meditation based on your thoughts.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
