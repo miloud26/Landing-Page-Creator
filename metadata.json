@@ -1,7 +1,7 @@
 {
-  "name": "ZenAI Journal",
-  "description": "A mindful journaling application that provides AI-powered insights, mood visualizations, and real-time guided meditation based on your thoughts.",
+  "name": "Nano Brand Luxury Engine",
+  "description": "محرك ذكاء اصطناعي لتوليد صفحات الهبوط الفاخرة وتصميم الصور السينمائية للمنتجات.",
   "requestFramePermissions": [
-    "microphone"
+    "camera"
   ]
 }

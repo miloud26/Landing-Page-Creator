@@ -30,7 +30,7 @@ function generateLocalAvatar(name: string): string {
 }
 
 /**
- * إعادة توليد صورة واحدة باستخدام مفتاح API مقدم من المستخدم
+ * إعادة توليد صورة واحدة باستخدام مفتاح API المقدم من المستخدم
  */
 export async function regenerateSingleImage(
   apiKey: string,
@@ -39,6 +39,7 @@ export async function regenerateSingleImage(
   allProductImages: string[] = []
 ): Promise<string | null> {
   try {
+    // نستخدم المفتاح الممرر من المستخدم مباشرة
     const ai = new GoogleGenAI({ apiKey });
     const referenceImages = allProductImages.length > 0 ? allProductImages : [currentImage];
     const imageParts = referenceImages.map(img => ({
@@ -50,10 +51,10 @@ export async function regenerateSingleImage(
         text: `STRICT PRODUCT FIDELITY & MASTERPIECE PROTOCOL.
         1. PRODUCT: Must be 100% identical to the reference images.
         2. SCENE: "${prompt}".
-        3. CINEMATIC: Use dramatic lighting (Rim light, God rays), exciting composition, 8k resolution.
-        4. ARTISTRY: Beyond imagination, luxury studio photography, elegant and clean.
+        3. CINEMATIC: Use dramatic lighting, exciting composition, 8k resolution.
+        4. ARTISTRY: Luxury studio photography, elegant and clean.
         5. PERSPECTIVE: Show the FULL object clearly.
-        6. TECHNICAL: 1:1 SQUARE, high fidelity, professional grade.` 
+        6. TECHNICAL: 1:1 SQUARE.` 
       },
       ...imageParts
     ];
@@ -73,7 +74,7 @@ export async function regenerateSingleImage(
 }
 
 /**
- * تحليل وتصميم الصفحة بالكامل باستخدام مفتاح API مقدم من المستخدم
+ * تحليل وتصميم الصفحة بالكامل باستخدام مفتاح API المقدم من المستخدم
  */
 export async function analyzeAndDesignFromImage(
   apiKey: string,
@@ -98,35 +99,29 @@ export async function analyzeAndDesignFromImage(
           {
             text: `Role: Ultra-Luxury Brand Strategist.
             TASK: 
-            1. Analyze product.
-            2. Sections:
-               - Variants: Process this input for colors and sizes: "${variantsContext}". Colors must have hex values.
-               - Notes: Integrate these user notes into a "Special Insight" or "Commitment" section: "${notesContext}".
-               - Reviews: 3 unique reviews from ALGERIAN customers.
-               - FAQ: 4-5 entries.
-            3. ARABIC: Sophisticated, eloquent, high line-height.
-
+            1. Analyze product from images.
+            2. Build Landing Page in ARABIC.
+            3. Contexts: Variants: ${variantsContext}, Notes: ${notesContext}.
+            4. Social Proof: 3 Algerian reviews.
+            
             Return JSON ONLY:
             {
               "strategyInsights": { "atmosphere": { "primaryColor": "#0f172a", "mood": "Cinematic Luxury" } },
               "copy": {
-                "hero": { "headline": "...", "subheadline": "...", "cta": "احصل عليه الآن" },
+                "hero": { "headline": "...", "subheadline": "...", "cta": "اطلب الآن" },
                 "problem": { "title": "...", "pains": ["...", "...", "..."] },
                 "solution": { "title": "...", "explanation": "..." },
                 "variants": { "title": "خيارات الفخامة", "items": [{"label": "أحمر ملكي", "value": "#ff0000", "type": "color"}] },
                 "notes": { "title": "ملاحظات هامة", "content": "..." },
                 "visualBenefits": { "title": "لماذا هذا الابتكار؟", "items": [{ "title": "...", "description": "..." }] },
-                "socialProof": { "title": "ثقة زبائننا في الجزائر", "reviews": [{ "name": "ياسين دحماني", "comment": "..." }] },
+                "socialProof": { "title": "ثقة زبائننا", "reviews": [{ "name": "...", "comment": "..." }] },
                 "faqs": { "title": "الأسئلة الشائعة", "items": [{ "question": "...", "answer": "..." }] }
               },
               "imagePrompts": {
-                 "hero": "Cinematic exciting ultra-luxury masterpiece reveal of the product, dramatic lighting, 8k.",
-                 "problem": "Realistic gritty high-contrast photo of intense pain/struggle, moody lighting.",
-                 "solution": "Pristine luxury studio shot showing the FULL PRODUCT clearly and entirely, clean background.",
-                 "benefitPrompts": [
-                    "Cinematic professional shot showing the FULL product from a sophisticated dynamic angle.",
-                    "Studio shot of the FULL product clearly displayed, luxury vibe."
-                 ]
+                 "hero": "Cinematic reveal, luxury, dramatic lighting.",
+                 "problem": "Moody gritty photo of struggle.",
+                 "solution": "Pristine studio shot showing full product.",
+                 "benefitPrompts": ["Professional dynamic shot.", "Clear luxury display."]
               }
             }`
           }
@@ -142,14 +137,13 @@ export async function analyzeAndDesignFromImage(
   
   const plan = JSON.parse(jsonMatch[1]);
 
-  onProgress?.("توليد الصور السينمائية (خيالية)...");
+  onProgress?.("توليد الصور السينمائية (تستغرق وقتاً)...");
   
   const safeGenerate = async (prompt: string, idx: number) => {
     try {
       const result = await regenerateSingleImage(apiKey, prompt, productImages[idx % productImages.length], productImages);
       return result || productImages[idx % productImages.length]; 
     } catch (e) {
-      console.warn("Sub-image generation failed, falling back to original.");
       return productImages[idx % productImages.length];
     }
   };
