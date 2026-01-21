@@ -1,8 +1,8 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-// إضافة الامتداد لضمان التعرف على الملف في بيئات الإنتاج
-import { analyzeAndDesignFromImage, regenerateSingleImage } from './GeminiService.tsx';
-import { LandingPageContent } from './types.ts';
+// تصحيح الاستيراد: حذف الامتدادات الخاطئة ليتعرف عليها Vite تلقائياً
+import { analyzeAndDesignFromImage, regenerateSingleImage } from './GeminiService';
+import { LandingPageContent } from './types';
 import html2canvas from 'html2canvas';
 
 const App: React.FC = () => {
